@@ -19,8 +19,21 @@ import time
 import argparse
 import numpy as np
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path (handle both script and notebook execution)
+try:
+    _here = os.path.dirname(os.path.abspath(__file__))
+    _project_root = os.path.dirname(_here)
+except NameError:
+    # Running in Jupyter/IPython where __file__ is not defined
+    _project_root = os.path.abspath(os.getcwd())
+    # If we're in scripts/ subdir, go up one
+    if os.path.basename(_project_root) == 'scripts':
+        _project_root = os.path.dirname(_project_root)
+
+sys.path.insert(0, _project_root)
+# Also change working dir so relative paths like 'results/' work
+if os.path.isdir(os.path.join(_project_root, 'src')):
+    os.chdir(_project_root)
 
 from src.casson_fom import FlowParams, FOMSolver, generate_snapshots
 from src.pod_rom import PODBasis, GalerkinROM, build_pod_rom
