@@ -95,3 +95,59 @@ class ArteryGeometry:
                                   0.5 * self.L_daughter),
             "daughter_outlet":   0.95 * self.L_daughter,
         }
+
+
+
+# ----------------------------------------------------------------------
+# Paper-faithful stenosis (Ponalagusamy & Priyadharshini, AMC 2018)
+# ----------------------------------------------------------------------
+
+# The paper places a cosine stenosis in the parent vessel, centred at
+#     z_c = 1.6
+# with axial extent [z_c - L/2, z_c + L/2] = [0.6, 2.6]  (so L = 2),
+# and constriction depth ``delta_s`` (called δs in the paper).  Outside
+# the stenotic region the parent radius is R0 = 1.
+
+PAPER_STENOSIS_CENTER = 1.6
+PAPER_STENOSIS_LENGTH = 2.0
+PAPER_PARENT_BASE_R = 1.0
+
+
+def paper_parent_radius(z, delta_s: float,
+                        z_c: float = PAPER_STENOSIS_CENTER,
+                        L: float = PAPER_STENOSIS_LENGTH,
+                        R0: float = PAPER_PARENT_BASE_R) -> np.ndarray:
+    """Cosine stenosis profile of the parent artery.
+
+        R(z) = R0 * (1 - (delta_s / 2) * (1 + cos(2*pi*(z - z_c) / L)))   for |z - z_c| <= L/2
+        R(z) = R0                                                          otherwise
+
+    Notes
+    -----
+    With this convention:
+        R(z_c)        = R0 * (1 - delta_s)        (throat)
+        R(z_c +- L/2) = R0                        (boundaries)
+    matching the symmetric pattern in Ponalagusamy & Priyadharshini's
+    Table 1 (e.g. delta_s = 0.2 gives R_throat = 0.8).
+    """
+    z = np.atleast_1d(np.asarray(z, dtype=float))
+    inside = np.abs(z - z_c) <= 0.5 * L
+    bump = 0.5 * delta_s * (1.0 + np.cos(2.0 * np.pi * (z - z_c) / L))
+    R = R0 * (1.0 - np.where(inside, bump, 0.0))
+    return R if R.size > 1 else float(R)
+
+
+def paper_axial_grid(n_z: int = 101,
+                     z_min: float = 0.0,
+                     z_max: float = 3.2) -> np.ndarray:
+    """Default axial grid for paper-faithful WSS / Λ plots.
+
+    The paper reports values at z ∈ {0.6, 1.0, 1.4, 1.8, 2.2, 2.6} which is
+    a uniform 0.4-spacing grid covering the full stenotic region.  We use a
+    finer 0.016 spacing for plotting and pick out the report z's exactly.
+    """
+    return np.linspace(z_min, z_max, n_z)
+
+
+# Six axial report locations used in the paper's tables
+PAPER_REPORT_Z = np.array([0.6, 1.0, 1.4, 1.8, 2.2, 2.6])
